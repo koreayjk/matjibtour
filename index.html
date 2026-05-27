@@ -179,6 +179,70 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @media (max-width: 960px) {
   .nav { display: none; }
 }
+
+/* ───── 모바일 보강 (햄버거 메뉴 / tip-bar / 히어로 장식) ───── */
+.nav-toggle {
+  display: none;
+  width: 40px; height: 40px;
+  background: transparent; border: 1.5px solid var(--outline, #E6D8B8);
+  border-radius: 10px; cursor: pointer;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; padding: 0;
+  transition: border-color 0.15s;
+}
+.nav-toggle:hover { border-color: var(--brand-500, #C8392C); }
+.nav-toggle span {
+  display: block; width: 18px; height: 2px;
+  background: var(--ink-900, #2A1B0E); border-radius: 2px;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.nav-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.nav-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.nav-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+/* tip-bar의 짧은/긴 텍스트 토글: 기본은 PC */
+.tip-bar .tip-short { display: none !important; }
+.tip-bar .tip-long  { display: inline !important; }
+
+@media (max-width: 720px) {
+  .nav-toggle { display: inline-flex; }
+  /* 햄버거 클릭 시 펼쳐지는 모바일 메뉴 */
+  .nav.open {
+    display: flex !important;
+    position: absolute;
+    top: 100%; left: 0; right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    background: #fff;
+    border-top: 1px solid var(--outline, #E6D8B8);
+    box-shadow: 0 12px 28px rgba(80,40,0,0.10);
+    padding: 8px 0;
+    gap: 0;
+  }
+  .nav.open a {
+    padding: 14px 22px;
+    font-size: 15px;
+    border-bottom: 1px solid #F4EBD7;
+  }
+  .nav.open a:last-child { border-bottom: none; }
+  .header { position: relative; }
+
+  /* tip-bar 모바일 처리 */
+  .tip-bar { font-size: 12px; padding: 6px 0; }
+  .tip-bar .wrap { padding: 0 14px; gap: 8px; }
+  .tip-bar .left { gap: 8px; flex-wrap: nowrap; min-width: 0; }
+  .tip-bar .left span { white-space: nowrap; }
+  .tip-bar .tip-short { display: inline !important; }
+  .tip-bar .tip-long  { display: none !important; }
+
+  /* 헤더 CTA 버튼은 작게 */
+  .header-cta .icon-btn { display: none; }
+  .header-cta .btn-cta { padding: 8px 14px; font-size: 13px; }
+  .brand-logo { height: 38px; }
+
+  /* 히어로 장식 잎/토마토는 모바일에서 숨김 (글씨와 겹쳐서) */
+  .hero .float-deco { display: none; }
+}
 .brand {
   display: flex; align-items: center; gap: 10px;
 }
@@ -1519,11 +1583,11 @@ body[data-deco="festive"] .badge-tag { animation: pop 2.5s ease-in-out infinite;
 <div class="tip-bar">
   <div class="wrap">
     <div class="left">
-      <span><span class="dot"></span>오늘 영업중 · 08:00–21:00 (브레이크타임 15:30–17:00)</span>
-      <span>일요일 휴무</span>
+      <span><span class="dot"></span><span class="tip-long">오늘 영업중 · 08:00–21:00 (브레이크타임 15:30–17:00)</span><span class="tip-short">영업중 · 08:00–21:00</span></span>
+      <span class="tip-long">일요일 휴무</span>
     </div>
     <div class="right">
-      <a href="tel:0507-1435-0685">📞 0507-1435-0685</a>
+      <a href="tel:0507-1435-0685"><span class="tip-long">📞 0507-1435-0685</span><span class="tip-short">📞 전화</span></a>
     </div>
   </div>
 </div>
@@ -1534,7 +1598,7 @@ body[data-deco="festive"] .badge-tag { animation: pop 2.5s ease-in-out infinite;
     <a href="#" class="brand">
       <img src="assets/logo.png" alt="맛집여행" class="brand-logo" />
     </a>
-    <nav class="nav">
+    <nav class="nav" id="mainNav">
       <a href="#hero" class="active">홈</a>
       <a href="#menu">메뉴</a>
       <a href="#about">소개</a>
@@ -1542,6 +1606,9 @@ body[data-deco="festive"] .badge-tag { animation: pop 2.5s ease-in-out infinite;
       <a href="#visit">오시는 길</a>
       <a href="#blog">소식</a>
     </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="메뉴 열기" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
     <div class="header-cta">
       <button class="icon-btn" aria-label="검색"><span class="material-symbols-outlined">search</span></button>
       <a href="#order" class="btn btn-primary btn-sm">주문 · 예약</a>
@@ -2114,6 +2181,23 @@ body[data-deco="festive"] .badge-tag { animation: pop 2.5s ease-in-out infinite;
   window.addEventListener('scroll', () => {
     header.style.boxShadow = window.scrollY > 8 ? '0 2px 12px rgba(80,40,0,0.06)' : 'none';
   }, { passive: true });
+
+  // ---------- 모바일 햄버거 메뉴 ----------
+  const navToggle = document.getElementById('navToggle');
+  const mainNav = document.getElementById('mainNav');
+  if (navToggle && mainNav) {
+    navToggle.addEventListener('click', () => {
+      const open = mainNav.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    // 메뉴 항목 클릭 시 자동으로 닫기
+    mainNav.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => {
+        mainNav.classList.remove('open');
+        navToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
 </script>
 
 <!-- ========== 데이터 렌더링 엔진 (Supabase → 화면) ========== -->
