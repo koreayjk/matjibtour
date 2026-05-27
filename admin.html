@@ -229,17 +229,34 @@
     </div>
 
     <div class="tabs">
-      <button class="tab active" data-tab="dishes">🍽️ 대표 메뉴</button>
+      <button class="tab active" data-tab="hero">🏠 첫 화면</button>
+      <button class="tab" data-tab="dishes">🍽️ 대표 메뉴</button>
+      <button class="tab" data-tab="about">🏡 소개 사진</button>
       <button class="tab" data-tab="gallery">📷 매장 사진</button>
       <button class="tab" data-tab="events">🎁 이벤트·소식</button>
     </div>
 
+    <!-- 첫 화면(히어로) -->
+    <div class="panel" data-panel="hero">
+      <div class="section-title">첫 화면</div>
+      <div class="section-sub">홈페이지 맨 위에 크게 보이는 대표 사진과 추천 메뉴 카드입니다.</div>
+      <div id="heroBox"></div>
+    </div>
+
     <!-- 대표 메뉴 -->
-    <div class="panel" data-panel="dishes">
+    <div class="panel hidden" data-panel="dishes">
       <div class="section-title">대표 메뉴</div>
       <div class="section-sub">사진 · 메뉴 이름 · 가격 · 설명을 세트로 관리합니다.</div>
       <div id="dishList"></div>
       <div class="add-row"><button class="btn ghost" data-add="dishes">＋ 메뉴 추가</button></div>
+    </div>
+
+    <!-- 소개 사진 -->
+    <div class="panel hidden" data-panel="about">
+      <div class="section-title">소개 사진</div>
+      <div class="section-sub">'한 끼가 여행 같은 쉼이 되기를' 소개 영역 왼쪽에 들어가는 사진들입니다.</div>
+      <div id="aboutList"></div>
+      <div class="add-row"><button class="btn ghost" data-add="about">＋ 사진 추가</button></div>
     </div>
 
     <!-- 매장 사진 -->
@@ -322,8 +339,10 @@ let data = { dishes: [], gallery: [], events: [] };
 function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
 
 function baseData() {
-  let b = window.SITE_DATA ? deepClone(window.SITE_DATA) : { dishes:[], gallery:[], events:[] };
+  let b = window.SITE_DATA ? deepClone(window.SITE_DATA) : {};
   return {
+    hero:    (b.hero && typeof b.hero === 'object') ? b.hero : {},
+    about:   Array.isArray(b.about)   ? b.about   : [],
     dishes:  Array.isArray(b.dishes)  ? b.dishes  : [],
     gallery: Array.isArray(b.gallery) ? b.gallery : [],
     events:  Array.isArray(b.events)  ? b.events  : []
@@ -339,11 +358,15 @@ async function loadData() {
       .from(SB.table)
       .select('section, payload');
     if (error || !rows) return base;
-    const out = { dishes: base.dishes, gallery: base.gallery, events: base.events };
+    const out = { hero: base.hero, about: base.about, dishes: base.dishes, gallery: base.gallery, events: base.events };
     rows.forEach(r => {
       let arr = r.payload;
       if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e){ arr = null; } }
-      if (Array.isArray(arr) && arr.length > 0) out[r.section] = arr;
+      if (r.section === 'hero') {
+        if (arr && typeof arr === 'object' && !Array.isArray(arr) && Object.keys(arr).length > 0) out.hero = arr;
+      } else {
+        if (Array.isArray(arr) && arr.length > 0) out[r.section] = arr;
+      }
     });
     return out;
   } catch(e) {
@@ -394,6 +417,8 @@ async function uploadToStorage(blob) {
 const dishList    = document.getElementById('dishList');
 const galleryList = document.getElementById('galleryList');
 const eventList   = document.getElementById('eventList');
+const aboutList   = document.getElementById('aboutList');
+const heroBox     = document.getElementById('heroBox');
 
 const BADGE_OPTS = [
   { v:"", t:"없음" },
@@ -541,14 +566,66 @@ function renderEvents() {
   });
 }
 
+// 첫 화면(히어로) — 객체 하나라 카드 2개(큰 사진 / 추천 카드)로 편집
+function renderHero() {
+  if (!data.hero || typeof data.hero !== 'object') data.hero = {};
+  const h = data.hero;
+  heroBox.innerHTML = '';
+
+  // (1) 큰 대표 사진
+  const c1 = document.createElement('div'); c1.className='item';
+  const n1 = document.createElement('div'); n1.className='num'; n1.textContent='큰';
+  c1.appendChild(n1);
+  c1.appendChild(dropZone(h, 'img', 'circle'));
+  const f1 = document.createElement('div'); f1.className='fields';
+  const t1 = document.createElement('div');
+  t1.style.cssText='font-size:13px;color:var(--ink-500);padding-top:4px;line-height:1.6;';
+  t1.innerHTML='맨 위 큰 동그란 대표 사진이에요.<br>가장 먹음직스러운 사진을 넣어주세요.';
+  f1.appendChild(t1);
+  f1.appendChild(field('추천 뱃지 글자', h.badge, v => h.badge=v, {grow:true, placeholder:'예: 사장 추천 메뉴'}));
+  c1.appendChild(f1);
+  heroBox.appendChild(c1);
+
+  // (2) 추천 메뉴 카드
+  const c2 = document.createElement('div'); c2.className='item';
+  const n2 = document.createElement('div'); n2.className='num'; n2.textContent='카드';
+  c2.appendChild(n2);
+  c2.appendChild(dropZone(h, 'cardImg', 'circle'));
+  const f2 = document.createElement('div'); f2.className='fields';
+  const r2 = document.createElement('div'); r2.className='row';
+  r2.appendChild(field('메뉴 이름', h.name, v => h.name=v, {grow:true, placeholder:'예: 매운 쪽갈비 정식'}));
+  r2.appendChild(field('가격', h.price, v => h.price=v, {placeholder:'예: 10,900원'}));
+  r2.appendChild(field('별점', h.rating, v => h.rating=v, {placeholder:'예: 4.9'}));
+  f2.appendChild(r2);
+  f2.appendChild(field('한 줄 설명', h.desc, v => h.desc=v, {grow:true, placeholder:'예: 매콤달콤 단골 1순위, 든든한 정식'}));
+  c2.appendChild(f2);
+  heroBox.appendChild(c2);
+}
+
+// 소개(About) 영역 사진들
+function renderAbout() {
+  aboutList.innerHTML = '';
+  data.about.forEach((a, i) => {
+    const card = document.createElement('div'); card.className='item';
+    const num = document.createElement('div'); num.className='num'; num.textContent=i+1;
+    card.appendChild(num);
+    card.appendChild(dropZone(a, 'img', 'rounded'));
+    const fields = document.createElement('div'); fields.className='fields';
+    fields.appendChild(field('사진 설명 (선택)', a.caption, v => a.caption=v, {grow:true, placeholder:'예: 매장 외관 / 간판'}));
+    card.appendChild(fields);
+    card.appendChild(moveBtns(data.about, i));
+    aboutList.appendChild(card);
+  });
+}
+
 function updateSize() {
   const info = document.getElementById('sizeInfo');
-  info.textContent = `메뉴 ${data.dishes.length}개 · 사진 ${data.gallery.length}장 · 소식 ${data.events.length}개`;
+  info.textContent = `메뉴 ${data.dishes.length}개 · 소개 ${data.about.length}장 · 매장 ${data.gallery.length}장 · 소식 ${data.events.length}개`;
   info.style.color = 'var(--ink-500)';
 }
 
 function rerender() {
-  renderDishes(); renderGallery(); renderEvents(); updateSize();
+  renderHero(); renderAbout(); renderDishes(); renderGallery(); renderEvents(); updateSize();
 }
 
 /* ---------- 탭 ---------- */
@@ -565,6 +642,7 @@ document.querySelectorAll('[data-add]').forEach(btn => {
   btn.addEventListener('click', () => {
     const k = btn.dataset.add;
     if (k==='dishes') data.dishes.push({ img:"", name:"새 메뉴", price:"0원", desc:"", badge:"", badgeType:"" });
+    if (k==='about') data.about.push({ img:"", caption:"" });
     if (k==='gallery') data.gallery.push({ img:"", caption:"" });
     if (k==='events') data.events.push({ img:"", tag:"소식", title:"새 소식", date:"" });
     rerender();
@@ -585,6 +663,8 @@ async function saveToSupabase() {
   btn.textContent = '저장 중…'; btn.disabled = true;
   try {
     const rows = [
+      { section: 'hero',    payload: data.hero,    updated_at: new Date().toISOString() },
+      { section: 'about',   payload: data.about,   updated_at: new Date().toISOString() },
       { section: 'dishes',  payload: data.dishes,  updated_at: new Date().toISOString() },
       { section: 'gallery', payload: data.gallery, updated_at: new Date().toISOString() },
       { section: 'events',  payload: data.events,  updated_at: new Date().toISOString() }
@@ -615,8 +695,10 @@ helpModal.addEventListener('click', e => { if(e.target===helpModal) helpModal.cl
 /* ---------- 시작 ---------- */
 async function boot() {
   // 로딩 표시
-  dishList.innerHTML = '<div style="padding:30px; text-align:center; color:var(--ink-500);">불러오는 중…</div>';
+  heroBox.innerHTML = '<div style="padding:30px; text-align:center; color:var(--ink-500);">불러오는 중…</div>';
   data = await loadData();
+  if (!data.hero || typeof data.hero !== 'object') data.hero = {};
+  data.about = data.about || [];
   data.dishes = data.dishes || [];
   data.gallery = data.gallery || [];
   data.events = data.events || [];

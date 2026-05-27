@@ -4,6 +4,25 @@
    직접 수정하지 마세요.
    ========================================================= */
 window.SITE_DATA = {
+  // ── 첫 화면(히어로): 큰 대표 사진 + 추천 카드 ──
+  hero: {
+    img: "assets/dish-jjokgalbi.png",   // 큰 원형 대표 사진
+    badge: "사장 추천 메뉴",
+    cardImg: "assets/dish-jjokgalbi.png", // 카드 안 작은 사진
+    name: "매운 쪽갈비 정식",
+    rating: "4.9",
+    desc: "매콤달콤 단골 1순위, 든든한 정식",
+    price: "10,900원"
+  },
+
+  // ── 소개(About) 영역 매장 사진 4장 ──
+  about: [
+    { img: "assets/banner-full.png",       caption: "매장 외관 / 간판" },
+    { img: "assets/menu-board.png",        caption: "주방 정성스러운 준비" },
+    { img: "assets/menu-illustration.png", caption: "매장 내부 분위기" },
+    { img: "assets/dish-jjokgalbi.png",    caption: "주인장 인사" }
+  ],
+
   // ── 대표 메뉴 (사진 · 이름 · 가격 · 설명) ──
   dishes: [
     { img: "assets/dish-jjokgalbi.png", name: "매운 쪽갈비 정식", price: "10,900원", desc: "매콤달콤 양념에 푹 졸인 부드러운 쪽갈비, 든든한 정식 한 상", badge: "사장 추천", badgeType: "boss" },

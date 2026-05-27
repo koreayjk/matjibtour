@@ -14,11 +14,13 @@ create table if not exists public.matjip_content (
   updated_at timestamptz not null default now()
 );
 
--- 2) 행 미리 만들어 두기 (없으면 빈 배열로) -------------------
+-- 2) 행 미리 만들어 두기 (없으면 빈 값으로) -------------------
 insert into public.matjip_content (section, payload)
-values ('dishes', '[]'::jsonb),
+values ('hero',    '{}'::jsonb),
+       ('about',   '[]'::jsonb),
+       ('dishes',  '[]'::jsonb),
        ('gallery', '[]'::jsonb),
-       ('events', '[]'::jsonb)
+       ('events',  '[]'::jsonb)
 on conflict (section) do nothing;
 
 -- 3) RLS(접근 권한) 설정 -------------------------------------

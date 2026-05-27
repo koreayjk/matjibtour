@@ -1620,18 +1620,18 @@ body[data-deco="festive"] .badge-tag { animation: pop 2.5s ease-in-out infinite;
           placeholder="대표 메뉴 사진을 넣어주세요 (예: 매운 쪽갈비 정식)"></image-slot>
       </div>
       <div class="best-badge">
-        <span class="pip">★</span> 사장 추천 메뉴
+        <span class="pip">★</span> <span data-hero="badge">사장 추천 메뉴</span>
       </div>
       <div class="dish-card">
         <div class="thumb">
           <image-slot id="hero-thumb" shape="circle" src="assets/dish-jjokgalbi.png" placeholder="작은 음식 사진"></image-slot>
         </div>
         <div class="info">
-          <p class="name">매운 쪽갈비 정식</p>
-          <div class="rate">★★★★★ <span style="color:var(--ink-500); margin-left:4px;">(4.9)</span></div>
-          <p class="desc">매콤달콤 단골 1순위, 든든한 정식</p>
+          <p class="name" data-hero="name">매운 쪽갈비 정식</p>
+          <div class="rate" data-hero="rate">★★★★★ <span style="color:var(--ink-500); margin-left:4px;">(4.9)</span></div>
+          <p class="desc" data-hero="desc">매콤달콤 단골 1순위, 든든한 정식</p>
         </div>
-        <span class="price">10,900원</span>
+        <span class="price" data-hero="price">10,900원</span>
       </div>
     </div>
   </div>
@@ -1674,11 +1674,8 @@ body[data-deco="festive"] .badge-tag { animation: pop 2.5s ease-in-out infinite;
 <!-- ========== About ========== -->
 <section class="about sec-pad" id="about">
   <div class="wrap">
-    <div class="about-gallery">
-      <image-slot id="about-1" class="ag-1" shape="rounded" radius="22" placeholder="매장 외관 / 간판" src="assets/banner-full.png"></image-slot>
-      <image-slot id="about-2" class="ag-2" shape="rounded" radius="22" placeholder="주방 정성스러운 준비" src="assets/menu-board.png"></image-slot>
-      <image-slot id="about-3" class="ag-3" shape="rounded" radius="22" placeholder="매장 내부 분위기" src="assets/menu-illustration.png"></image-slot>
-      <image-slot id="about-4" class="ag-4" shape="rounded" radius="22" placeholder="주인장 인사" src="assets/dish-jjokgalbi.png"></image-slot>
+    <div class="about-gallery" data-render="about">
+      <!-- 소개 영역 매장 사진은 관리자 데이터로 자동 생성됩니다 -->
     </div>
 
     <div class="about-text">
@@ -2126,8 +2123,10 @@ body[data-deco="festive"] .badge-tag { animation: pop 2.5s ease-in-out infinite;
 
   // 기본 데이터(site-data.js) — Supabase 연결 전/실패 시 사용
   function baseData() {
-    var b = window.SITE_DATA || { dishes: [], gallery: [], events: [] };
+    var b = window.SITE_DATA || {};
     return {
+      hero:    (b.hero && typeof b.hero === 'object') ? b.hero : {},
+      about:   Array.isArray(b.about)   ? b.about   : [],
       dishes:  Array.isArray(b.dishes)  ? b.dishes  : [],
       gallery: Array.isArray(b.gallery) ? b.gallery : [],
       events:  Array.isArray(b.events)  ? b.events  : []
@@ -2143,13 +2142,20 @@ body[data-deco="festive"] .badge-tag { animation: pop 2.5s ease-in-out infinite;
         .from(SB.table)
         .select('section, payload');
       if (res.error || !res.data) return base;
-      var out = { dishes: base.dishes, gallery: base.gallery, events: base.events };
+      var out = { hero: base.hero, about: base.about, dishes: base.dishes, gallery: base.gallery, events: base.events };
       res.data.forEach(function (row) {
         var arr = row.payload;
         // payload가 문자열로 올 수도 있으니 방어
         if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e){ arr = null; } }
-        // 빈 배열이면 기본값 유지 (관리자가 아직 저장 안 한 상태)
-        if (Array.isArray(arr) && arr.length > 0) { out[row.section] = arr; }
+        if (row.section === 'hero') {
+          // hero는 객체. 내용이 있을 때만 교체
+          if (arr && typeof arr === 'object' && !Array.isArray(arr) && Object.keys(arr).length > 0) {
+            out.hero = arr;
+          }
+        } else {
+          // 나머지는 배열. 비어있지 않을 때만 교체 (관리자가 아직 저장 안 한 상태 보호)
+          if (Array.isArray(arr) && arr.length > 0) { out[row.section] = arr; }
+        }
       });
       return out;
     } catch (e) {
@@ -2213,7 +2219,48 @@ body[data-deco="festive"] .badge-tag { animation: pop 2.5s ease-in-out infinite;
     }).join('');
   }
 
+  // 첫 화면(히어로)
+  function renderHero(data) {
+    var h = data.hero || {};
+    // 큰 대표 사진
+    var bigSlot = document.getElementById('hero-dish');
+    if (bigSlot) {
+      if (h.img) bigSlot.setAttribute('src', h.img); else bigSlot.removeAttribute('src');
+    }
+    // 카드 작은 사진
+    var thumbSlot = document.getElementById('hero-thumb');
+    if (thumbSlot) {
+      if (h.cardImg) thumbSlot.setAttribute('src', h.cardImg); else thumbSlot.removeAttribute('src');
+    }
+    // 텍스트들
+    var badge = document.querySelector('[data-hero="badge"]');
+    if (badge && h.badge != null) badge.textContent = h.badge;
+    var name = document.querySelector('[data-hero="name"]');
+    if (name && h.name != null) name.textContent = h.name;
+    var desc = document.querySelector('[data-hero="desc"]');
+    if (desc && h.desc != null) desc.textContent = h.desc;
+    var price = document.querySelector('[data-hero="price"]');
+    if (price && h.price != null) price.textContent = h.price;
+    var rate = document.querySelector('[data-hero="rate"]');
+    if (rate && h.rating != null) {
+      rate.innerHTML = '★★★★★ <span style="color:var(--ink-500); margin-left:4px;">(' + esc(h.rating) + ')</span>';
+    }
+  }
+
+  // 소개(About) 영역 사진들
+  function renderAbout(data) {
+    var box = document.querySelector('[data-render="about"]');
+    if (!box) return;
+    box.innerHTML = (data.about || []).map(function (a, i) {
+      return '<image-slot class="ag-' + (i + 1) + '" shape="rounded" radius="22" ' +
+        (a.img ? 'src="' + esc(a.img) + '" ' : '') +
+        'placeholder="' + esc(a.caption) + '"></image-slot>';
+    }).join('');
+  }
+
   function paint(data) {
+    renderHero(data);
+    renderAbout(data);
     renderDishes(data);
     renderGallery(data);
     renderEvents(data);
