@@ -192,6 +192,12 @@
   .modal ol { margin:0 0 18px 20px; }
   .modal li { margin:8px 0; font-size:14px; color:var(--ink-700); }
   .modal code { background:var(--brand-soft); color:var(--brand-dark); padding:2px 7px; border-radius:5px; font-size:13px; }
+  .pub-fld { display:flex; flex-direction:column; gap:5px; font-size:12.5px; font-weight:700; color:var(--ink-700); }
+  .pub-fld input {
+    padding:11px 12px; border:1.5px solid var(--line); border-radius:10px;
+    font-size:14px; font-weight:400; color:var(--ink-900); background:#fff;
+  }
+  .pub-fld input:focus { outline:none; border-color:var(--brand); }
 </style>
 </head>
 <body>
@@ -215,6 +221,7 @@
     <div class="ttl">맛집여행 관리자<small>사진 · 메뉴 · 이벤트 관리</small></div>
     <div class="spacer"></div>
     <span class="saved-pill" id="savedPill">미리보기 저장됨 ✓</span>
+    <button class="btn ghost sm" id="pubSettingsBtn">⚙️ 발행 설정</button>
     <button class="btn ghost sm" id="helpBtn">도움말</button>
   </div>
 
@@ -223,9 +230,8 @@
       여기서 사진·이름·가격·이벤트를 바꾼 뒤, 맨 아래 <b>「저장하기」</b>를 누르면
       <b>이 컴퓨터(브라우저)에서 바로 미리보기</b>로 확인할 수 있습니다.
       <div style="margin-top:8px; font-size:12.5px; color:var(--ink-500);">
-        💡 <b>모든 손님 기기에 똑같이 보이게 하려면</b> → 맨 아래
-        <b>「모든 손님에게 반영 (파일 받기)」</b>을 눌러 <code>site-data.js</code> 파일을 내려받은 뒤,
-        GitHub 저장소에 같은 이름으로 올려주세요(덮어쓰기). 그러면 모든 손님에게 반영됩니다.
+        💡 <b>모든 손님 기기에 똑같이 보이게 하려면</b> → 맨 아래 <b>「🌐 모든 손님에게 발행」</b>을 누르세요.
+        (처음 한 번만 위쪽 <b>「⚙️ 발행 설정」</b>에서 GitHub 토큰을 넣어두면, 이후엔 버튼 한 번이면 끝!)
       </div>
     </div>
 
@@ -280,7 +286,7 @@
   <div class="savebar">
     <span class="info" id="sizeInfo"></span>
     <a class="btn ghost" href="index.html" target="_blank" rel="noopener">사이트 열어보기 ↗</a>
-    <button class="btn ghost" id="publishBtn">⬇️ 모든 손님에게 반영 (파일 받기)</button>
+    <button class="btn ghost" id="publishBtn">🌐 모든 손님에게 발행</button>
     <button class="btn green" id="saveBtn">💾 저장하기 (이 기기에 반영)</button>
   </div>
 </div>
@@ -293,13 +299,55 @@
       <li>사진 칸을 <b>클릭</b>하거나 사진을 <b>끌어다 놓으면</b> 업로드됩니다. (자동으로 가볍게 줄여서 저장돼요)</li>
       <li>이름·가격·설명을 적습니다. 가격은 <code>10,900원</code>처럼 자유롭게 적어도 됩니다.</li>
       <li>다 바꿨으면 <b>「저장하기」</b>를 누르세요. <b>이 컴퓨터에서 미리보기</b>로 바로 확인됩니다.</li>
-      <li>모든 손님에게 반영하려면 <b>「모든 손님에게 반영 (파일 받기)」</b>을 눌러 받은
-        <code>site-data.js</code> 파일을 GitHub 저장소에 <b>덮어쓰기</b>로 올려주세요.</li>
+      <li>모든 손님에게 보이게 하려면 <b>「🌐 모든 손님에게 발행」</b>을 누르세요.
+        (처음 한 번 <b>「⚙️ 발행 설정」</b>에서 GitHub 토큰만 넣어두면, 이후엔 버튼 한 번으로 끝!)</li>
     </ol>
     <p style="font-size:13px; color:var(--ink-500); margin-bottom:18px;">
-      ※ 손님 모두에게 보이게 하려면 받은 <code>site-data.js</code>를 GitHub에 올리는 단계가 필요합니다.
+      ※ 발행 설정을 해두면 GitHub에 직접 올릴 필요 없이 자동으로 반영됩니다.
     </p>
     <button class="btn full" id="helpClose">알겠어요</button>
+  </div>
+</div>
+
+<!-- 발행 설정 모달 -->
+<div class="modal-bg hidden" id="pubModal">
+  <div class="modal">
+    <h2>발행 설정 (처음 한 번만)</h2>
+    <p style="font-size:13.5px; color:var(--ink-700); margin-bottom:14px; line-height:1.6;">
+      아래에 <b>GitHub 토큰</b>을 한 번만 넣어두면, 이후엔 <b>「🌐 모든 손님에게 발행」</b> 버튼만 눌러
+      자동으로 사이트에 반영됩니다. (토큰은 <b>이 컴퓨터에만</b> 저장돼요)
+    </p>
+    <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px;">
+      <label class="pub-fld"><span>GitHub 토큰</span>
+        <input id="pubToken" type="password" autocomplete="off" placeholder="github_pat_... 또는 ghp_..." />
+      </label>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <label class="pub-fld" style="flex:1; min-width:130px;"><span>GitHub 아이디(owner)</span>
+          <input id="pubOwner" type="text" placeholder="예: koreayjk" />
+        </label>
+        <label class="pub-fld" style="flex:1; min-width:130px;"><span>저장소(repo)</span>
+          <input id="pubRepo" type="text" placeholder="예: matjibtour" />
+        </label>
+        <label class="pub-fld" style="width:110px;"><span>브랜치</span>
+          <input id="pubBranch" type="text" placeholder="main" />
+        </label>
+      </div>
+    </div>
+    <details style="margin-bottom:16px; font-size:12.5px; color:var(--ink-500); line-height:1.7;">
+      <summary style="cursor:pointer; color:var(--brand-dark); font-weight:700;">토큰 만드는 법 (눌러서 보기)</summary>
+      <ol style="margin:8px 0 0 18px;">
+        <li>GitHub 로그인 → <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens</b></li>
+        <li><b>Generate new token</b> → 이름 입력, 만료일 선택</li>
+        <li><b>Repository access</b>: <b>Only select repositories</b> → 이 저장소 선택</li>
+        <li><b>Permissions → Repository permissions → Contents</b>를 <b>Read and write</b>로 설정</li>
+        <li>생성된 토큰을 복사해 위 칸에 붙여넣고 <b>저장</b></li>
+      </ol>
+    </details>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn green" id="pubSave" style="flex:1; min-width:140px;">저장하고 발행</button>
+      <button class="btn ghost" id="pubDownload">파일로 받기</button>
+      <button class="btn ghost" id="pubClose">닫기</button>
+    </div>
   </div>
 </div>
 
@@ -354,7 +402,22 @@ function loadData() {
   }
 }
 
-/* ---------- 이미지 압축 (Blob 반환) ---------- */
+/* ---------- 최적 이미지 포맷 감지 (WebP 우선) ---------- */
+const IMG_FMT = (function () {
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = 1;
+    if (c.toDataURL('image/webp').indexOf('data:image/webp') === 0) {
+      return { mime: 'image/webp', ext: 'webp' };
+    }
+  } catch (e) {}
+  return { mime: 'image/jpeg', ext: 'jpg' };
+})();
+
+/* ---------- 이미지 압축 (Blob 반환) ----------
+   - 긴 변을 maxDim 이하로 축소
+   - 가능하면 WebP로 인코딩(JPEG 대비 25~35%↓), 미지원 시 JPEG
+   - 고품질 다운스케일을 위해 단계적으로 줄임                       */
 function compressImageToBlob(file, maxDim, quality) {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) { reject(new Error('이미지 파일이 아닙니다')); return; }
@@ -363,14 +426,41 @@ function compressImageToBlob(file, maxDim, quality) {
       const img = new Image();
       img.onload = () => {
         let { width, height } = img;
-        if (width > maxDim || height > maxDim) {
-          if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
-          else { width = Math.round(width * maxDim / height); height = maxDim; }
+        // 목표 크기 계산
+        let tw = width, th = height;
+        if (tw > maxDim || th > maxDim) {
+          if (tw >= th) { th = Math.round(th * maxDim / tw); tw = maxDim; }
+          else { tw = Math.round(tw * maxDim / th); th = maxDim; }
         }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        canvas.toBlob(b => b ? resolve(b) : reject(new Error('변환 실패')), 'image/jpeg', quality);
+        // 한 번에 크게 줄이면 계단현상이 생기므로 절반씩 단계 축소
+        let cw = width, ch = height;
+        let canvas = document.createElement('canvas');
+        let ctx = canvas.getContext('2d');
+        canvas.width = cw; canvas.height = ch;
+        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, cw, ch);
+        while (cw > tw * 2 && ch > th * 2) {
+          const nw = Math.max(tw, Math.round(cw / 2));
+          const nh = Math.max(th, Math.round(ch / 2));
+          const next = document.createElement('canvas');
+          next.width = nw; next.height = nh;
+          const nctx = next.getContext('2d');
+          nctx.imageSmoothingEnabled = true; nctx.imageSmoothingQuality = 'high';
+          nctx.drawImage(canvas, 0, 0, nw, nh);
+          canvas = next; ctx = nctx; cw = nw; ch = nh;
+        }
+        if (cw !== tw || ch !== th) {
+          const fin = document.createElement('canvas');
+          fin.width = tw; fin.height = th;
+          const fctx = fin.getContext('2d');
+          fctx.imageSmoothingEnabled = true; fctx.imageSmoothingQuality = 'high';
+          fctx.drawImage(canvas, 0, 0, tw, th);
+          canvas = fin;
+        }
+        canvas.toBlob(
+          b => b ? resolve(b) : reject(new Error('변환 실패')),
+          IMG_FMT.mime, quality
+        );
       };
       img.onerror = () => reject(new Error('이미지를 읽을 수 없습니다'));
       img.src = e.target.result;
@@ -420,7 +510,7 @@ function dropZone(item, key, shape) {
   async function handle(file) {
     try {
       wrap.innerHTML = `<div class="ic">⏳</div><div>올리는 중…</div>`;
-      const blob = await compressImageToBlob(file, 800, 0.72);
+      const blob = await compressImageToBlob(file, 1000, IMG_FMT.ext === 'webp' ? 0.80 : 0.74);
       const url = await uploadToStorage(blob);
       item[key] = url;
       rerender();
@@ -650,20 +740,21 @@ function saveLocal() {
 }
 document.getElementById('saveBtn').addEventListener('click', saveLocal);
 
-/* ---------- 모든 손님에게 반영: site-data.js 내려받기 ---------- */
-function buildSiteDataFile() {
+/* ---------- site-data.js 파일 내용 만들기 ---------- */
+function buildSiteDataFile(d) {
   const header =
     '/* =========================================================\n' +
     '   맛집여행 — 사이트 데이터 (관리자 페이지에서 수정)\n' +
     '   이 파일은 관리자 페이지(admin.html)에서 자동으로 생성·교체됩니다.\n' +
     '   직접 수정하지 마세요.\n' +
     '   ========================================================= */\n';
-  return header + 'window.SITE_DATA = ' + JSON.stringify(data, null, 2) + ';\n';
+  return header + 'window.SITE_DATA = ' + JSON.stringify(d, null, 2) + ';\n';
 }
+
+/* ---------- (폴백) site-data.js 내려받기 ---------- */
 function downloadSiteData() {
-  // 먼저 이 기기에도 저장
   try { window.MATJIP_STORE.save(data); } catch(e) {}
-  const blob = new Blob([buildSiteDataFile()], { type: 'application/javascript' });
+  const blob = new Blob([buildSiteDataFile(data)], { type: 'application/javascript' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = 'site-data.js';
@@ -671,7 +762,169 @@ function downloadSiteData() {
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-document.getElementById('publishBtn').addEventListener('click', downloadSiteData);
+
+/* =====================================================================
+   GitHub 자동 발행 (서버 없이 브라우저에서 직접 GitHub에 올리기)
+   - 토큰은 이 브라우저(localStorage)에만 저장됩니다.
+   - 발행 시: ① data: 사진들을 assets/uploads/ 파일로 업로드 →
+     ② 사진 경로로 바꾼 가벼운 site-data.js 를 커밋
+   ===================================================================== */
+const PUB_KEY = 'matjip_publish_cfg';
+
+function detectRepo() {
+  const host = location.hostname || '';
+  const owner = host.endsWith('.github.io') ? host.split('.')[0] : '';
+  const seg = location.pathname.split('/').filter(Boolean); // 마지막은 admin.html
+  let repo = '';
+  if (seg.length > 1) repo = seg[0];
+  else if (owner) repo = owner + '.github.io';
+  return { owner, repo };
+}
+function getPubCfg() {
+  let cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem(PUB_KEY) || '{}') || {}; } catch(e) {}
+  const det = detectRepo();
+  return {
+    token:  cfg.token  || '',
+    owner:  cfg.owner  || det.owner || '',
+    repo:   cfg.repo   || det.repo  || '',
+    branch: cfg.branch || 'main',
+    path:   cfg.path   || 'site-data.js'
+  };
+}
+function savePubCfg(cfg) { localStorage.setItem(PUB_KEY, JSON.stringify(cfg)); }
+
+// UTF-8 문자열 → base64 (한글 안전)
+function b64EncodeUnicode(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+async function ghApi(cfg, method, path, body) {
+  const res = await fetch('https://api.github.com/repos/' + cfg.owner + '/' + cfg.repo + path, {
+    method,
+    headers: {
+      'Authorization': 'Bearer ' + cfg.token,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (res.status === 401) throw new Error('토큰이 올바르지 않습니다 (401). 발행 설정에서 토큰을 다시 확인해 주세요.');
+  if (res.status === 403) throw new Error('권한이 없습니다 (403). 토큰에 Contents 쓰기 권한이 있는지 확인해 주세요.');
+  if (res.status === 404 && method === 'GET') return null; // 파일 없음
+  if (!res.ok) {
+    let msg = res.status + '';
+    try { const j = await res.json(); if (j.message) msg += ' ' + j.message; } catch(e) {}
+    throw new Error('GitHub 오류: ' + msg);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+// 파일 쓰기(있으면 덮어쓰기). content는 이미 base64.
+async function ghPutFile(cfg, path, base64Content, message) {
+  const cur = await ghApi(cfg, 'GET', '/contents/' + encodeURI(path) + '?ref=' + encodeURIComponent(cfg.branch));
+  const body = { message, content: base64Content, branch: cfg.branch };
+  if (cur && cur.sha) body.sha = cur.sha;
+  return ghApi(cfg, 'PUT', '/contents/' + encodeURI(path), body);
+}
+
+// data: 이미지 한 장을 파일로 업로드 → 상대경로 반환
+async function ghUploadImage(cfg, dataUrl, idx) {
+  const m = /^data:([^;]+);base64,(.*)$/.exec(dataUrl);
+  if (!m) return dataUrl; // 이미 경로면 그대로
+  const mime = m[1], b64 = m[2];
+  const ext = mime === 'image/webp' ? 'webp' : mime === 'image/png' ? 'png' : 'jpg';
+  const name = 'img_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
+  const path = 'assets/uploads/' + name;
+  await ghPutFile(cfg, path, b64, '맛집여행: 사진 업로드 ' + name);
+  return path;
+}
+
+// data 안의 모든 이미지 필드를 순회
+function eachImageField(d, cb) {
+  if (d.hero && typeof d.hero === 'object') { cb(d.hero, 'img'); cb(d.hero, 'cardImg'); }
+  ['about','dishes','gallery','events'].forEach(sec => {
+    (d[sec] || []).forEach(o => { if (o && typeof o === 'object') cb(o, 'img'); });
+  });
+}
+
+let publishing = false;
+async function publishToGitHub() {
+  if (publishing) return;
+  const cfg = getPubCfg();
+  if (!cfg.token || !cfg.owner || !cfg.repo) { openPubModal(); return; }
+
+  publishing = true;
+  const btn = document.getElementById('publishBtn');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  try {
+    // 1) 새로 추가된 사진(data:)들을 파일로 업로드하고 경로로 교체
+    const targets = [];
+    eachImageField(data, (obj, key) => {
+      if (typeof obj[key] === 'string' && obj[key].indexOf('data:') === 0) targets.push({ obj, key });
+    });
+    for (let i = 0; i < targets.length; i++) {
+      btn.textContent = '사진 올리는 중… (' + (i+1) + '/' + targets.length + ')';
+      const t = targets[i];
+      t.obj[t.key] = await ghUploadImage(cfg, t.obj[t.key], i);
+      try { window.MATJIP_STORE.save(data); } catch(e) {} // 진행상황 보존(재시도 시 중복 업로드 방지)
+      rerender();
+    }
+    // 2) 가벼워진 site-data.js 커밋
+    btn.textContent = '사이트 반영 중…';
+    await ghPutFile(cfg, cfg.path, b64EncodeUnicode(buildSiteDataFile(data)),
+      '맛집여행: 사이트 내용 업데이트');
+    try { window.MATJIP_STORE.save(data); } catch(e) {}
+
+    btn.textContent = '발행 완료 ✓';
+    savedPill.textContent = '모든 손님에게 반영됐어요 ✓';
+    savedPill.classList.add('show');
+    setTimeout(() => savedPill.classList.remove('show'), 3200);
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+  } catch (err) {
+    alert('발행에 실패했어요: ' + (err.message || err) +
+      '\n\n잠시 후 다시 시도해 주세요. 계속 실패하면 발행 설정의 토큰·저장소 정보를 확인해 주세요.\n' +
+      '(이미 올라간 사진은 다시 올리지 않으니 안심하고 재시도하세요)');
+    btn.textContent = orig; btn.disabled = false;
+  } finally {
+    publishing = false;
+  }
+}
+
+/* ---------- 발행 설정 모달 ---------- */
+const pubModal = document.getElementById('pubModal');
+function openPubModal() {
+  const cfg = getPubCfg();
+  document.getElementById('pubToken').value  = cfg.token;
+  document.getElementById('pubOwner').value  = cfg.owner;
+  document.getElementById('pubRepo').value   = cfg.repo;
+  document.getElementById('pubBranch').value = cfg.branch;
+  pubModal.classList.remove('hidden');
+}
+function closePubModal() { pubModal.classList.add('hidden'); }
+document.getElementById('pubSettingsBtn').addEventListener('click', openPubModal);
+document.getElementById('pubClose').addEventListener('click', closePubModal);
+pubModal.addEventListener('click', e => { if (e.target === pubModal) closePubModal(); });
+document.getElementById('pubDownload').addEventListener('click', () => { closePubModal(); downloadSiteData(); });
+document.getElementById('pubSave').addEventListener('click', () => {
+  const cfg = {
+    token:  document.getElementById('pubToken').value.trim(),
+    owner:  document.getElementById('pubOwner').value.trim(),
+    repo:   document.getElementById('pubRepo').value.trim(),
+    branch: document.getElementById('pubBranch').value.trim() || 'main',
+    path:   'site-data.js'
+  };
+  savePubCfg(cfg);
+  closePubModal();
+  if (cfg.token && cfg.owner && cfg.repo) {
+    if (confirm('설정을 저장했어요. 지금 바로 모든 손님에게 발행할까요?')) publishToGitHub();
+  } else {
+    alert('설정을 저장했어요.');
+  }
+});
+
+document.getElementById('publishBtn').addEventListener('click', publishToGitHub);
 
 /* ---------- 도움말 ---------- */
 const helpModal = document.getElementById('helpModal');
