@@ -8,9 +8,8 @@
 <link rel="icon" type="image/png" href="assets/logo.png" />
 <link rel="apple-touch-icon" href="assets/logo.png" />
 <script src="site-data.js"></script>
-<!-- Supabase 연결 (관리자 변경사항 실시간 반영) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
+<!-- 데이터 저장소 (관리자 변경사항 반영) -->
+<script src="storage.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=block" />
@@ -2200,51 +2199,23 @@ body[data-deco="festive"] .badge-tag { animation: pop 2.5s ease-in-out infinite;
   }
 </script>
 
-<!-- ========== 데이터 렌더링 엔진 (Supabase → 화면) ========== -->
+<!-- ========== 데이터 렌더링 엔진 (저장소 → 화면) ========== -->
 <script>
 (function () {
-  var SB = window.MATJIP_SUPABASE || {};
-
-  // 기본 데이터(site-data.js) — Supabase 연결 전/실패 시 사용
+  // 기본 데이터(site-data.js) — 저장된 내용이 없을 때 사용
   function baseData() {
-    var b = window.SITE_DATA || {};
-    return {
-      hero:    (b.hero && typeof b.hero === 'object') ? b.hero : {},
-      about:   Array.isArray(b.about)   ? b.about   : [],
-      dishes:  Array.isArray(b.dishes)  ? b.dishes  : [],
-      gallery: Array.isArray(b.gallery) ? b.gallery : [],
-      events:  Array.isArray(b.events)  ? b.events  : []
+    return window.MATJIP_STORE ? window.MATJIP_STORE.base() : {
+      hero: {}, about: [], dishes: [], gallery: [], events: []
     };
   }
 
-  // Supabase에서 데이터 가져오기 (실패하면 기본값)
-  async function fetchData() {
-    var base = baseData();
-    if (!window._matjipSB) return base;
+  // 저장소(localStorage)에서 데이터 가져오기 (없으면 기본값)
+  function fetchData() {
     try {
-      var res = await window._matjipSB
-        .from(SB.table)
-        .select('section, payload');
-      if (res.error || !res.data) return base;
-      var out = { hero: base.hero, about: base.about, dishes: base.dishes, gallery: base.gallery, events: base.events };
-      res.data.forEach(function (row) {
-        var arr = row.payload;
-        // payload가 문자열로 올 수도 있으니 방어
-        if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e){ arr = null; } }
-        if (row.section === 'hero') {
-          // hero는 객체. 내용이 있을 때만 교체
-          if (arr && typeof arr === 'object' && !Array.isArray(arr) && Object.keys(arr).length > 0) {
-            out.hero = arr;
-          }
-        } else {
-          // 나머지는 배열. 비어있지 않을 때만 교체 (관리자가 아직 저장 안 한 상태 보호)
-          if (Array.isArray(arr) && arr.length > 0) { out[row.section] = arr; }
-        }
-      });
-      return out;
+      return window.MATJIP_STORE ? window.MATJIP_STORE.load() : baseData();
     } catch (e) {
-      console.warn('Supabase 로드 실패, 기본 데이터 사용:', e);
-      return base;
+      console.warn('데이터 로드 실패, 기본 데이터 사용:', e);
+      return baseData();
     }
   }
 
@@ -2351,12 +2322,9 @@ body[data-deco="festive"] .badge-tag { animation: pop 2.5s ease-in-out infinite;
     if (window.renderImageSlots) window.renderImageSlots();
   }
 
-  async function renderAll() {
-    // 1) 먼저 기본값으로 즉시 그려서 빈 화면 방지
-    paint(baseData());
-    // 2) Supabase 데이터 도착하면 다시 그림
-    var data = await fetchData();
-    paint(data);
+  function renderAll() {
+    // 저장된 내용(없으면 기본값)으로 화면을 그림
+    paint(fetchData());
   }
 
   if (document.readyState === 'loading') {

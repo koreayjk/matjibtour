@@ -10,8 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" />
 <script src="site-data.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
+<script src="storage.js"></script>
 <style>
   :root {
     --brand:#EF8423; --brand-dark:#D86C0F; --brand-soft:#FFF6EB;
@@ -221,10 +220,12 @@
 
   <div class="wrap">
     <div class="guide">
-      여기서 사진·이름·가격·이벤트를 바꾼 뒤, 화면 맨 아래 <b>「저장하기」</b> 버튼을 누르면
-      <b>곧바로 손님들 홈페이지에 반영</b>됩니다. (GitHub에 따로 올릴 필요 없어요!)
+      여기서 사진·이름·가격·이벤트를 바꾼 뒤, 맨 아래 <b>「저장하기」</b>를 누르면
+      <b>이 컴퓨터(브라우저)에서 바로 미리보기</b>로 확인할 수 있습니다.
       <div style="margin-top:8px; font-size:12.5px; color:var(--ink-500);">
-        💡 사진은 인터넷(Supabase)에 안전하게 저장되고, 모든 손님 기기에서 똑같이 보입니다.
+        💡 <b>모든 손님 기기에 똑같이 보이게 하려면</b> → 맨 아래
+        <b>「모든 손님에게 반영 (파일 받기)」</b>을 눌러 <code>site-data.js</code> 파일을 내려받은 뒤,
+        GitHub 저장소에 같은 이름으로 올려주세요(덮어쓰기). 그러면 모든 손님에게 반영됩니다.
       </div>
     </div>
 
@@ -279,7 +280,8 @@
   <div class="savebar">
     <span class="info" id="sizeInfo"></span>
     <a class="btn ghost" href="index.html" target="_blank" rel="noopener">사이트 열어보기 ↗</a>
-    <button class="btn green" id="saveBtn">💾 저장하기 (사이트에 바로 반영)</button>
+    <button class="btn ghost" id="publishBtn">⬇️ 모든 손님에게 반영 (파일 받기)</button>
+    <button class="btn green" id="saveBtn">💾 저장하기 (이 기기에 반영)</button>
   </div>
 </div>
 
@@ -288,13 +290,14 @@
   <div class="modal">
     <h2>사용 방법</h2>
     <ol>
-      <li>사진 칸을 <b>클릭</b>하거나 사진을 <b>끌어다 놓으면</b> 업로드됩니다. (자동으로 가볍게 줄여서 인터넷에 저장돼요)</li>
+      <li>사진 칸을 <b>클릭</b>하거나 사진을 <b>끌어다 놓으면</b> 업로드됩니다. (자동으로 가볍게 줄여서 저장돼요)</li>
       <li>이름·가격·설명을 적습니다. 가격은 <code>10,900원</code>처럼 자유롭게 적어도 됩니다.</li>
-      <li>다 바꿨으면 아래 <b>「저장하기」</b>를 누르세요. <b>곧바로 손님 홈페이지에 반영</b>됩니다.</li>
-      <li>손님이 홈페이지를 새로고침하면 바뀐 내용이 보입니다.</li>
+      <li>다 바꿨으면 <b>「저장하기」</b>를 누르세요. <b>이 컴퓨터에서 미리보기</b>로 바로 확인됩니다.</li>
+      <li>모든 손님에게 반영하려면 <b>「모든 손님에게 반영 (파일 받기)」</b>을 눌러 받은
+        <code>site-data.js</code> 파일을 GitHub 저장소에 <b>덮어쓰기</b>로 올려주세요.</li>
     </ol>
     <p style="font-size:13px; color:var(--ink-500); margin-bottom:18px;">
-      ※ GitHub에 파일을 다시 올릴 필요가 없습니다. 저장만 누르면 끝이에요.
+      ※ 손님 모두에게 보이게 하려면 받은 <code>site-data.js</code>를 GitHub에 올리는 단계가 필요합니다.
     </p>
     <button class="btn full" id="helpClose">알겠어요</button>
   </div>
@@ -305,8 +308,6 @@
    맛집여행 관리자 로직
    ===================================================================== */
 const PIN = "2414";
-const SB = window.MATJIP_SUPABASE || {};
-const sbClient = window._matjipSB || null;
 
 /* ---------- 로그인 ---------- */
 const lockEl = document.getElementById('lock');
@@ -339,39 +340,17 @@ let data = { dishes: [], gallery: [], events: [] };
 function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
 
 function baseData() {
-  let b = window.SITE_DATA ? deepClone(window.SITE_DATA) : {};
-  return {
-    hero:    (b.hero && typeof b.hero === 'object') ? b.hero : {},
-    about:   Array.isArray(b.about)   ? b.about   : [],
-    dishes:  Array.isArray(b.dishes)  ? b.dishes  : [],
-    gallery: Array.isArray(b.gallery) ? b.gallery : [],
-    events:  Array.isArray(b.events)  ? b.events  : []
-  };
+  return window.MATJIP_STORE ? deepClone(window.MATJIP_STORE.base())
+    : { hero:{}, about:[], dishes:[], gallery:[], events:[] };
 }
 
-// Supabase에서 현재 데이터 불러오기 (없으면 기본값)
-async function loadData() {
-  const base = baseData();
-  if (!sbClient) return base;
+// 저장소(localStorage)에서 현재 데이터 불러오기 (없으면 기본값)
+function loadData() {
   try {
-    const { data: rows, error } = await sbClient
-      .from(SB.table)
-      .select('section, payload');
-    if (error || !rows) return base;
-    const out = { hero: base.hero, about: base.about, dishes: base.dishes, gallery: base.gallery, events: base.events };
-    rows.forEach(r => {
-      let arr = r.payload;
-      if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e){ arr = null; } }
-      if (r.section === 'hero') {
-        if (arr && typeof arr === 'object' && !Array.isArray(arr) && Object.keys(arr).length > 0) out.hero = arr;
-      } else {
-        if (Array.isArray(arr) && arr.length > 0) out[r.section] = arr;
-      }
-    });
-    return out;
+    return window.MATJIP_STORE ? deepClone(window.MATJIP_STORE.load()) : baseData();
   } catch(e) {
-    console.warn('Supabase 로드 실패:', e);
-    return base;
+    console.warn('데이터 로드 실패:', e);
+    return baseData();
   }
 }
 
@@ -401,16 +380,14 @@ function compressImageToBlob(file, maxDim, quality) {
   });
 }
 
-/* ---------- Supabase Storage 업로드 → 공개 URL ---------- */
-async function uploadToStorage(blob) {
-  if (!sbClient) throw new Error('Supabase에 연결되어 있지 않습니다');
-  const name = 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.jpg';
-  const { error } = await sbClient.storage
-    .from(SB.bucket)
-    .upload(name, blob, { contentType: 'image/jpeg', upsert: false });
-  if (error) throw error;
-  const { data } = sbClient.storage.from(SB.bucket).getPublicUrl(name);
-  return data.publicUrl;
+/* ---------- 이미지 → base64 데이터 URL (브라우저에 저장) ---------- */
+function uploadToStorage(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('이미지 변환 실패'));
+    reader.readAsDataURL(blob);
+  });
 }
 
 /* ---------- 렌더링 (편집 카드들) ---------- */
@@ -443,12 +420,12 @@ function dropZone(item, key, shape) {
   async function handle(file) {
     try {
       wrap.innerHTML = `<div class="ic">⏳</div><div>올리는 중…</div>`;
-      const blob = await compressImageToBlob(file, 1000, 0.82);
+      const blob = await compressImageToBlob(file, 800, 0.72);
       const url = await uploadToStorage(blob);
       item[key] = url;
       rerender();
     } catch(err) {
-      alert('사진을 올리지 못했어요: ' + (err.message || err) + '\n\n(인터넷 연결과 Supabase 설정을 확인해 주세요)');
+      alert('사진을 올리지 못했어요: ' + (err.message || err));
       rerender();
     }
   }
@@ -651,40 +628,50 @@ document.querySelectorAll('[data-add]').forEach(btn => {
   });
 });
 
-/* ---------- Supabase에 저장 (즉시 반영) ---------- */
+/* ---------- 이 브라우저에 저장 (미리보기 즉시 반영) ---------- */
 const savedPill = document.getElementById('savedPill');
-async function saveToSupabase() {
+function saveLocal() {
   const btn = document.getElementById('saveBtn');
   const orig = btn.textContent;
-  if (!sbClient) {
-    alert('Supabase에 연결되어 있지 않습니다.\nsupabase-config.js 설정과 인터넷 연결을 확인해 주세요.');
-    return;
-  }
   btn.textContent = '저장 중…'; btn.disabled = true;
   try {
-    const rows = [
-      { section: 'hero',    payload: data.hero,    updated_at: new Date().toISOString() },
-      { section: 'about',   payload: data.about,   updated_at: new Date().toISOString() },
-      { section: 'dishes',  payload: data.dishes,  updated_at: new Date().toISOString() },
-      { section: 'gallery', payload: data.gallery, updated_at: new Date().toISOString() },
-      { section: 'events',  payload: data.events,  updated_at: new Date().toISOString() }
-    ];
-    const { error } = await sbClient
-      .from(SB.table)
-      .upsert(rows, { onConflict: 'section' });
-    if (error) throw error;
+    window.MATJIP_STORE.save(data);
     btn.textContent = '저장 완료 ✓';
-    savedPill.textContent = '사이트에 반영됐어요 ✓';
+    savedPill.textContent = '이 기기에 저장됐어요 ✓';
     savedPill.classList.add('show');
     setTimeout(() => savedPill.classList.remove('show'), 2600);
     setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1800);
   } catch(err) {
+    const quota = err && (err.name === 'QuotaExceededError' || /quota/i.test(err.message || ''));
     alert('저장에 실패했어요: ' + (err.message || err) +
-      '\n\nSupabase 설정(테이블/권한)을 확인해 주세요. supabase_설정.sql을 실행했는지 확인하세요.');
+      (quota ? '\n\n사진 용량이 너무 큽니다. 사진 수를 줄이거나 더 작은 사진을 사용해 주세요.' : ''));
     btn.textContent = orig; btn.disabled = false;
   }
 }
-document.getElementById('saveBtn').addEventListener('click', saveToSupabase);
+document.getElementById('saveBtn').addEventListener('click', saveLocal);
+
+/* ---------- 모든 손님에게 반영: site-data.js 내려받기 ---------- */
+function buildSiteDataFile() {
+  const header =
+    '/* =========================================================\n' +
+    '   맛집여행 — 사이트 데이터 (관리자 페이지에서 수정)\n' +
+    '   이 파일은 관리자 페이지(admin.html)에서 자동으로 생성·교체됩니다.\n' +
+    '   직접 수정하지 마세요.\n' +
+    '   ========================================================= */\n';
+  return header + 'window.SITE_DATA = ' + JSON.stringify(data, null, 2) + ';\n';
+}
+function downloadSiteData() {
+  // 먼저 이 기기에도 저장
+  try { window.MATJIP_STORE.save(data); } catch(e) {}
+  const blob = new Blob([buildSiteDataFile()], { type: 'application/javascript' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'site-data.js';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+document.getElementById('publishBtn').addEventListener('click', downloadSiteData);
 
 /* ---------- 도움말 ---------- */
 const helpModal = document.getElementById('helpModal');
@@ -696,7 +683,7 @@ helpModal.addEventListener('click', e => { if(e.target===helpModal) helpModal.cl
 async function boot() {
   // 로딩 표시
   heroBox.innerHTML = '<div style="padding:30px; text-align:center; color:var(--ink-500);">불러오는 중…</div>';
-  data = await loadData();
+  data = loadData();
   if (!data.hero || typeof data.hero !== 'object') data.hero = {};
   data.about = data.about || [];
   data.dishes = data.dishes || [];
